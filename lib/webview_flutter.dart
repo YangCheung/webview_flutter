@@ -348,6 +348,10 @@ class WebViewController {
     return _channel.invokeMethod('loadUrl', url);
   }
 
+  Future<String> scrollY() async {
+    return _channel.invokeMethod('scrollY');
+  }
+
   /// Accessor to the current URL that the WebView is displaying.
   ///
   /// If [WebView.initialUrl] was never specified, returns `null`.
