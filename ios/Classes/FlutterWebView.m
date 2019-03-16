@@ -33,6 +33,9 @@
 
 @end
 
+@interface FLTWebViewController() <WKNavigationDelegate, UIScrollViewDelegate>
+@end
+
 @implementation FLTWebViewController {
   WKWebView* _webView;
   int64_t _viewId;
@@ -64,6 +67,9 @@
     configuration.userContentController = userContentController;
 
     _webView = [[WKWebView alloc] initWithFrame:frame configuration:configuration];
+    _webView.navigationDelegate = self;
+    _webView.scrollView.delegate = self;
+      
     __weak __typeof__(self) weakSelf = self;
     [_channel setMethodCallHandler:^(FlutterMethodCall* call, FlutterResult result) {
       [weakSelf onMethodCall:call result:result];
@@ -77,6 +83,19 @@
     }
   }
   return self;
+}
+
+- (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView {
+    NSLog(@"scroll %f", scrollView.contentOffset.y);
+}
+
+- (void)webView:(WKWebView *)webView didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential))completionHandler {
+    NSLog(@"Allow all");
+    SecTrustRef serverTrust = challenge.protectionSpace.serverTrust;
+    CFDataRef exceptions = SecTrustCopyExceptions (serverTrust);
+    SecTrustSetExceptions (serverTrust, exceptions);
+    CFRelease (exceptions);
+    completionHandler (NSURLSessionAuthChallengeUseCredential, [NSURLCredential credentialForTrust:serverTrust]);
 }
 
 - (UIView*)view {
@@ -108,6 +127,8 @@
     [self onRemoveJavaScriptChannels:call result:result];
   } else if ([[call method] isEqualToString:@"clearCache"]) {
     [self clearCache:result];
+  } else if ([[call method] isEqualToString:@"scrollY"]) {
+    result([NSString stringWithFormat:@"%f",  _webView.scrollView.contentOffset.y]);
   } else {
     result(FlutterMethodNotImplemented);
   }
